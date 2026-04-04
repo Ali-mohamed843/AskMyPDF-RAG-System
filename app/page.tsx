@@ -2,14 +2,20 @@
 
 import { useState } from "react";
 import PDFUpload from "@/components/PDFUpload";
+import QuestionForm from "@/components/QuestionForm";
+import AnswerDisplay from "@/components/AnswerDisplay";
+import { useAskQuestion } from "@/lib/useAskQuestion";
 import { UploadedDocument } from "@/types";
 
 export default function Home() {
   const [uploadedDocs, setUploadedDocs] = useState<UploadedDocument[]>([]);
+  const { isLoading, answer, sources, error, askQuestion } = useAskQuestion();
 
   const handleDocumentUploaded = (doc: UploadedDocument) => {
     setUploadedDocs((prev) => [...prev, doc]);
   };
+
+  const hasDocuments = uploadedDocs.length > 0;
 
   return (
     <div className="space-y-8">
@@ -30,47 +36,36 @@ export default function Home() {
 
         <div className="space-y-6">
           <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-            <h2 className="text-xl font-semibold text-gray-900">
+            <h2 className="mb-4 text-xl font-semibold text-gray-900">
               Ask a Question
             </h2>
-            <p className="mt-2 text-sm text-gray-500">
-              {uploadedDocs.length > 0
-                ? `${uploadedDocs.length} document(s) ready. Question form coming in Step 4.`
-                : "Upload a PDF first to ask questions."}
-            </p>
-            <div className="mt-4">
-              <input
-                type="text"
-                placeholder="What is this document about?"
-                disabled
-                className="w-full rounded-lg border border-gray-300 bg-gray-100 px-4 py-3 text-gray-400"
-              />
-            </div>
+            <QuestionForm
+              onAskQuestion={askQuestion}
+              isLoading={isLoading}
+              disabled={!hasDocuments}
+            />
           </div>
 
-          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-            <h2 className="text-xl font-semibold text-gray-900">Answer</h2>
-            <div className="mt-4 rounded-lg bg-gray-50 p-4">
-              <p className="text-sm italic text-gray-400">
-                Upload a PDF and ask a question to get started...
-              </p>
-            </div>
-          </div>
+          <AnswerDisplay
+            answer={answer}
+            sources={sources}
+            isLoading={isLoading}
+            error={error}
+          />
         </div>
       </div>
 
-      <div className="rounded-lg bg-blue-50 p-4">
+      <div className="rounded-lg bg-green-50 p-4">
         <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100">
-            <span className="text-blue-600">✓</span>
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-100">
+            <span className="text-green-600">✓</span>
           </div>
           <div>
-            <p className="text-sm font-medium text-blue-900">
-              Step 2 Complete: PDF Upload
+            <p className="text-sm font-medium text-green-900">
+              Step 4 Complete: Question & Answer
             </p>
-            <p className="text-xs text-blue-700">
-              Drag-and-drop upload, text extraction, and chunking working. Next:
-              vector DB integration.
+            <p className="text-xs text-green-700">
+              Full RAG pipeline working: Upload PDF → Ask question → Get AI answer with sources.
             </p>
           </div>
         </div>

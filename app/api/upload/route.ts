@@ -48,6 +48,9 @@ export async function POST(request: NextRequest) {
     console.log(`[2/4] Splitting into chunks...`);
     const chunks = splitTextIntoChunks(text, documentId, file.name);
     console.log(`  → ${chunks.length} chunks created`);
+    console.log(`  First chunk preview (${chunks[0]?.content.length} chars): "${chunks[0]?.content.slice(0, 100)}..."`);
+    console.log(`  Last chunk preview (${chunks[chunks.length - 1]?.content.length} chars): "${chunks[chunks.length - 1]?.content.slice(0, 100)}..."`);
+
 
     console.log(`[3/4] Generating embeddings with Gemini...`);
     const embeddings = await generateEmbeddings(

@@ -14,44 +14,94 @@ export function splitTextIntoChunks(
   documentId: string,
   documentName: string
 ): DocumentChunk[] {
-  const cleanedText = text.replace(/\s+/g, " ").trim();
-  const chunks: DocumentChunk[] = [];
-  let start = 0;
-  let chunkIndex = 0;
+  const cleanedText = text
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .replace(/[ \t]+/g, " ")
+    .trim();
 
-  while (start < cleanedText.length) {
-    const end = Math.min(start + CHUNK_SIZE, cleanedText.length);
-    let chunkText = cleanedText.slice(start, end);
+  if (cleanedText.length === 0) {
+    return [];
+  }
 
-    if (end < cleanedText.length) {
-      const lastPeriod = chunkText.lastIndexOf(".");
-      const lastNewline = chunkText.lastIndexOf("\n");
-      const breakPoint = Math.max(lastPeriod, lastNewline);
-
-      if (breakPoint > CHUNK_SIZE * 0.3) {
-        chunkText = chunkText.slice(0, breakPoint + 1);
-      }
-    }
-
-    if (chunkText.trim().length > 0) {
-      chunks.push({
-        id: `${documentId}_chunk_${chunkIndex}`,
-        content: chunkText.trim(),
+  if (cleanedText.length <= CHUNK_SIZE) {
+    return [
+      {
+        id: `${documentId}_chunk_0`,
+        content: cleanedText,
         metadata: {
           documentId,
           documentName,
-          pageNumber: Math.floor(start / 3000) + 1,
+          pageNumber: 1,
+          chunkIndex: 0,
+        },
+      },
+    ];
+  }
+
+  const chunks: DocumentChunk[] = [];
+  let position = 0;
+  let chunkIndex = 0;
+
+  while (position < cleanedText.length) {
+    let end = position + CHUNK_SIZE;
+
+    if (end >= cleanedText.length) {
+      end = cleanedText.length;
+    } else {
+      const searchStart = Math.max(position + CHUNK_SIZE - 200, position);
+      const searchRegion = cleanedText.slice(searchStart, end);
+
+      const sentenceEnd = searchRegion.lastIndexOf(". ");
+      const paragraphEnd = searchRegion.lastIndexOf("\n\n");
+      const newlineEnd = searchRegion.lastIndexOf("\n");
+
+      let breakPoint = -1;
+
+      if (paragraphEnd !== -1) {
+        breakPoint = paragraphEnd + 2;
+      } else if (sentenceEnd !== -1) {
+        breakPoint = sentenceEnd + 2;
+      } else if (newlineEnd !== -1) {
+        breakPoint = newlineEnd + 1;
+      }
+
+      if (breakPoint !== -1) {
+        end = searchStart + breakPoint;
+      }
+    }
+
+    const chunkContent = cleanedText.slice(position, end).trim();
+
+    if (chunkContent.length > 0) {
+      const estimatedPage = Math.floor(position / 3000) + 1;
+
+      chunks.push({
+        id: `${documentId}_chunk_${chunkIndex}`,
+        content: chunkContent,
+        metadata: {
+          documentId,
+          documentName,
+          pageNumber: estimatedPage,
           chunkIndex,
         },
       });
+
       chunkIndex++;
     }
 
-    const nextStart = start + Math.max(chunkText.length - CHUNK_OVERLAP, 1);
-    if (nextStart <= start) {
+    const nextPosition = end - CHUNK_OVERLAP;
+
+    if (nextPosition <= position) {
+      position = end;
+    } else {
+      position = nextPosition;
+    }
+
+    if (end >= cleanedText.length) {
       break;
     }
-    start = nextStart;
   }
 
   return chunks;
